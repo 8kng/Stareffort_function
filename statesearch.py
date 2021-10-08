@@ -34,9 +34,6 @@ query_string = dict({"unix_socket": "/cloudsql/{}".format(connection_name)})
 Base = declarative_base()
 ma = Marshmallow()
 
-app = Flask(__name__)
-app.config["JSON_AS_ASCII"] = False
-
 def friendstate(request: Request) -> Union[Response, None]:
     engine = sqlalchemy.create_engine(
         sqlalchemy.engine.url.URL(
@@ -58,7 +55,6 @@ def friendstate(request: Request) -> Union[Response, None]:
     if request.method == 'POST':
         request_json = request.get_json()
         get_id = request_json['ids']
-        #get_if = ["222", "a237246d0b96adf1d"]
         reslist = list()
         dictonary = {}
         oneuser = "nulll"
@@ -66,15 +62,12 @@ def friendstate(request: Request) -> Union[Response, None]:
         tableget = session.query(table).all()
 
         for anid in get_id:
-            #reslist.append(anid)
             for onetable in tableget:
-                #reslist.append(onetable)
                 if (onetable.id == anid):
                     dictonary = {"id":onetable.id ,"number":onetable.number ,"state":onetable.state, "user":onetable.user}
                     reslist.append(dictonary)
 
-        #res_data = json.dumps(reslist)
-        response_data = jsonify({'idlist': tableSchema(many = True).dump(reslist)})
+        response_data = json.dumps({'idlist': tableSchema(many = True).dumps(reslist)}, ensure_ascii=False)
         response = make_response(response_data)
         response.headers['Content-Type'] = 'application/json'
         return response
