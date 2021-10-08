@@ -3,9 +3,13 @@ import sqlalchemy
 import datetime
 import qrcode
 import json
+import h5py
+import codecs
+import io
 
 from flask import json
 from flask import Flask
+from flask import *
 from flask import Request, Response
 from flask.helpers import make_response
 from typing import Union
@@ -30,6 +34,9 @@ query_string = dict({"unix_socket": "/cloudsql/{}".format(connection_name)})
 Base = declarative_base()
 ma = Marshmallow()
 
+app = Flask(__name__)
+app.config["JSON_AS_ASCII"] = False
+
 def friendstate(request: Request) -> Union[Response, None]:
     engine = sqlalchemy.create_engine(
         sqlalchemy.engine.url.URL(
@@ -39,6 +46,7 @@ def friendstate(request: Request) -> Union[Response, None]:
             database = db_name,
             query = query_string,
         ),
+        encoding = "utf-8",
         pool_size = 5,
         max_overflow = 2,
         pool_timeout = 30,
@@ -52,6 +60,8 @@ def friendstate(request: Request) -> Union[Response, None]:
         get_id = request_json['ids']
         #get_if = ["222", "a237246d0b96adf1d"]
         reslist = list()
+        dictonary = {}
+        oneuser = "nulll"
 
         tableget = session.query(table).all()
 
@@ -60,10 +70,13 @@ def friendstate(request: Request) -> Union[Response, None]:
             for onetable in tableget:
                 #reslist.append(onetable)
                 if (onetable.id == anid):
-                    reslist.append(onetable)
+                    dictonary = {"id":onetable.id ,"number":onetable.number ,"state":onetable.state, "user":onetable.user}
+                    reslist.append(dictonary)
 
+        #res_data = json.dumps(reslist)
         response_data = jsonify({'idlist': tableSchema(many = True).dump(reslist)})
         response = make_response(response_data)
+        response.headers['Content-Type'] = 'application/json'
         return response
 
     elif request.method == 'GET':
@@ -80,3 +93,7 @@ class tableSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model=table
         load_instance=True
+
+class dataclass:
+    user: String
+    state: String
