@@ -6,6 +6,7 @@ import json
 import h5py
 import codecs
 import io
+import sys
 
 from flask import json
 from flask import Flask
@@ -24,6 +25,7 @@ from flask import jsonify # <- `jsonify` instead of `json`
 from datetime import datetime
 from flask_marshmallow import Marshmallow
 from flask_marshmallow.fields import fields
+from flask_restful import Resource, Api, reqparse
 
 connection_name = os.environ['INSTANCE_CONNECTION_NAME']
 db_password = os.environ['DATABASE_USER_PASSWORD']
@@ -33,7 +35,10 @@ driver_name = 'mysql+pymysql'
 query_string = dict({"unix_socket": "/cloudsql/{}".format(connection_name)})
 Base = declarative_base()
 ma = Marshmallow()
+app = Flask(__name__) 
+app.config['JSON_AS_ASCII'] = False
 
+@app.route('/')
 def friendstate(request: Request) -> Union[Response, None]:
     engine = sqlalchemy.create_engine(
         sqlalchemy.engine.url.URL(
@@ -54,7 +59,8 @@ def friendstate(request: Request) -> Union[Response, None]:
     
     if request.method == 'POST':
         request_json = request.get_json()
-        get_id = request_json['ids']
+        gettxt = request_json['ids']
+        get_id = eval(gettxt)
         reslist = list()
         dictonary = {}
         oneuser = "nulll"
@@ -65,10 +71,16 @@ def friendstate(request: Request) -> Union[Response, None]:
             for onetable in tableget:
                 if (onetable.id == anid):
                     dictonary = {"id":onetable.id ,"number":onetable.number ,"state":onetable.state, "user":onetable.user}
+                    print(dictonary)
                     reslist.append(dictonary)
 
-        response_data = json.dumps({'idlist': tableSchema(many = True).dumps(reslist)}, ensure_ascii=False)
-        response = make_response(response_data)
+        #print({'idlist': tableSchema(many = True).dumps(reslist)})
+        #rr = json.dump({'idlist': tableSchema(may = True).dump(reslist)}, sys.stdout, ensure_ascii=False)
+        print(reslist)
+        resp_data = json.dumps({"response":reslist}, ensure_ascii=False)
+        print(resp_data)
+        response_data = jsonify({'list': tableSchema(many = True).dump(reslist)})
+        response = make_response(resp_data)
         response.headers['Content-Type'] = 'application/json'
         return response
 
@@ -90,3 +102,6 @@ class tableSchema(ma.SQLAlchemyAutoSchema):
 class dataclass:
     user: String
     state: String
+
+if __name__ == '__main__':
+    app.run(debug=True)
